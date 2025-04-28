@@ -64,6 +64,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 80%;
         }
 
         .app-title {
@@ -208,9 +209,19 @@
                 margin-top: 4vh;
 
             }
+            .container.collapsed {           
+              transform: translateY(-100vh);
+            }
 
 
-        @media (max-width: 76.8vh) {
+            .fa-bars.rotate {
+              transform: rotate(90deg);
+              color: black;
+              transition: transform 0.6s ease;
+
+            }
+
+        @media (max-width: 768px) {
             .app-header {
                 padding: 1vh;
             }
@@ -219,8 +230,8 @@
                 width: 24vh;
             }
             
-            #companyList.collapsed {
-                transform: translateX(-24vh);
+            .container.collapsed {
+              transform: translateY(-100vh);
             }
             
             #chartContainer {
@@ -238,10 +249,15 @@
 <body>
     <header class="app-header">
         <h1 class="app-title">Stock Market Analytics Dashboard</h1>
+        <button class="toggle-sidebar" @click="toggleSidebar">
+            <i class="fas fa-bars"></i>
+        </button>
     </header>
     
     <div class="container">
+
         <div id="companyList">
+
             <div class="list-header">STOCK INDICES</div>
         </div>
         
@@ -914,6 +930,16 @@ const typed = new Typed('#type', {
       cursorChar: '|',
     });
 
+window.addEventListener('click', ()=>{
+  const sidebar = document.getElementById('companyList');
+  sidebar.classList.toggle('collapsed');
+  
+  // Get the icon in the nav bar and toggle rotation
+  const navIcon = document.querySelector('.fa-bars');
+  if (navIcon) {
+    navIcon.classList.toggle('rotate');
+  }
+})
 
 loadData()
 </script>
