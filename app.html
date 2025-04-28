@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Data Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+
+
+
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --text-color: #1e293b;
+            --light-bg: #f8fafc;
+            --white: #ffffff;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1vh 2vh 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4vh 6vh -1vh rgba(0, 0, 0, 0.1), 0 2vh 4vh -1vh rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10vh 15vh -3vh rgba(0, 0, 0, 0.1), 0 4vh 6vh -2vh rgba(0, 0, 0, 0.05);
+            --radius-sm: 0.25vh;
+            --radius-md: 0.375vh;
+            --radius-lg: 0.5vh;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            line-height: 1.5;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: var(--white);
+            padding: 1.25vh 2vh;
+            box-shadow: var(--shadow-md);
+            position: fixed;
+            top: 0;
+            text-align: center;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-title {
+            font-size: 3.5vh;
+            font-weight: 700;
+            letter-spacing: 0.5vh;
+            margin: 0;
+        }
+
+        .toggle-sidebar {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: var(--white);
+            width: 4vh;
+            height: 4vh;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .toggle-sidebar:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .container {
+            display: flex;
+            padding-top: 7vh;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        #companyList {
+            background-color: var(--white);
+            box-shadow: var(--shadow-md);
+            width: 28vh;
+            position: fixed;
+            left: 0;
+            top: 17%;
+            bottom: 0;
+            z-index: 900;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            border-right: 0.1vh solid var(--border-color);
+        }
+
+        #companyList.collapsed {
+            transform: translateX(-28vh);
+        }
+
+        .list-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: var(--white);
+            padding: 1vh;
+            font-weight: 600;
+            text-align: center;
+            font-size: 1vh;
+            letter-spacing: 0.5vh;
+            border-bottom: 0.1vh solid rgba(255, 255, 255, 0.1);
+        }
+
+        #chartContainer {
+            flex: 1;
+            padding: 1.5vh;
+            margin-left: 28vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        #chartContainer.expanded {
+            margin-left: 0;
+        }
+
+        .chart-card {
+            background-color: var(--white);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 1.5vh;
+            overflow: hidden;
+        }
+
+        .chart-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            color: var(--text-color);
+            padding: 1vh;
+            background-color: var(--light-bg);
+            border-bottom: 0.1vh solid var(--border-color);
+            font-size: 2vh;
+        }
+
+        .chart-body {
+            padding: 1vh;
+            height: 40vh;
+        }
+
+        .company-item {
+            padding: 0.875vh 1vh;
+            cursor: pointer;
+            border-bottom: 0.1vh solid var(--border-color);
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .company-item:hover {
+            background-color: rgba(37, 99, 235, 0.05);
+            color: var(--primary-color);
+        }
+
+        .company-item.selected {
+            background-color: var(--primary-color);
+            color: var(--white);
+            border-left: 0.4vh solid var(--primary-dark);
+        }
+
+        canvas {
+            border-radius: var(--radius-sm);
+        }
+
+        .nav-right {
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 1vh;
+            font-size: 1.8vh;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-color);
+            background-color: var(--light-bg);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            border: 0.1vh solid var(--border-color);
+        }
+
+        #type {
+                font-size: 2vh;
+                font-family: 'Inter', sans-serif;
+                color: var(--primary-color);
+                font-weight: 500;
+                text-shadow: 0 0.1vh 0.2vh rgba(0, 0, 0, 0.1);
+                margin-bottom: 1vh;
+                margin-top: 4vh;
+
+            }
+
+
+        @media (max-width: 76.8vh) {
+            .app-header {
+                padding: 1vh;
+            }
+            
+            #companyList {
+                width: 24vh;
+            }
+            
+            #companyList.collapsed {
+                transform: translateX(-24vh);
+            }
+            
+            #chartContainer {
+                margin-left: 0;
+                padding: 1vh;
+            }
+            
+            .chart-body {
+                height: 30vh;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1 class="app-title">Stock Market Analytics Dashboard</h1>
+    </header>
+    
+    <div class="container">
+        <div id="companyList">
+            <div class="list-header">STOCK INDICES</div>
+        </div>
+        
+        <div id="chartContainer">
+            <div class="chart-card">
+                <div class="chart-title" id="volumeTitle">Volume & Closing Value Analysis</div>
+                <div class="chart-body">
+                    <canvas id="dataChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title" id="pointsTitle">Points Trend Analysis</div>
+                <div class="chart-body">
+                    <canvas id="pointChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title" id="highLowTitle">Points Change & Turnover Analysis</div>
+                <div class="chart-body">
+                    <canvas id="highLowValue"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title" id="bubbleTitle">Performance Bubble Chart</div>
+                <div class="chart-body">
+                    <canvas id="bubbleChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title" id="candlestickTitle">OHLC Candlestick Chart</div>
+                <div class="chart-body">
+                    <canvas id="candlestick-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-right-content"> 
+        <span id="datetime"></span> 
+      </div>
+      <span id="type"></span>
+
+    </div>
+  
+
+<script>
+let candlestickInstance = null;
+let bubbleChartInstance = null;
+Chart.register(ChartZoom);
+
+async function loadData() {
+    const response = await fetch('https://raw.githubusercontent.com/shaktids/stock_app_test/main/dump.csv');
+    const csvData = await response.text();
+    const rows = csvData.split('\n').slice(1);
+    return rows.map(row => {
+        const [index_name,index_date,open_index_value,high_index_value,low_index_value,closing_index_value,points_change,change_percent,volume,turnover_rs_cr,pe_ratio,pb_ratio,div_yield] = row.split(',');
+        return {index_name,index_date,open_index_value,high_index_value,low_index_value,closing_index_value,points_change,change_percent,volume,turnover_rs_cr,pe_ratio,pb_ratio,div_yield};
+    });
+  
+}
+
+let chartInstance = null;
+let pointInstance = null;
+
+let chartC = null ;
+const ctx = document.getElementById('dataChart').getContext('2d');
+const ptx = document.getElementById('pointChart').getContext('2d');
+const highLowValue = document.getElementById('highLowValue').getContext('2d');
+const bubbleCtx = document.getElementById('bubbleChart').getContext('2d');
+const candlestickChart = document.getElementById('candlestick-chart').getContext('2d');
+
+function createChart(companyData) {
+
+  if (chartInstance) {chartInstance.destroy()};
+  if (pointInstance) {pointInstance.destroy()};
+  if (chartC) {chartC.destroy()};
+  if (candlestickInstance) {candlestickInstance.destroy()};
+  if (bubbleChartInstance) {bubbleChartInstance.destroy()};
+
+  const companyName = companyData[0]?.index_name || "Stock";
+  document.getElementById('volumeTitle').textContent = `${companyName.replace(/"/g, '')} - Volume & Closing Value Analysis`;
+  document.getElementById('pointsTitle').textContent = `${companyName.replace(/"/g, '')} - Points Trend Analysis`;
+  document.getElementById('highLowTitle').textContent = `${companyName.replace(/"/g, '')} - Points Change & Turnover Analysis`;
+  document.getElementById('bubbleTitle').textContent = `${companyName.replace(/"/g, '')} - Performance Bubble Chart`;
+  document.getElementById('candlestickTitle').textContent = `${companyName.replace(/"/g, '')} - OHLC Candlestick Chart`;
+
+  const sortedData = [...companyData].sort(
+      (a, b) => new Date(a.index_date) - new Date(b.index_date)
+  );
+
+  chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+          labels: sortedData.map(d => d.index_date),
+          datasets: [
+              {
+                  label: 'Stock Volume',
+                  data: sortedData.map(d=>{
+                    const v = parseFloat(d.volume.replace(/"/g,''));
+                    return isNaN(v)? null : v;
+                  }),
+                  borderWidth: 1,
+                  tension: 0.10,
+                  backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(255, 159, 64, 0.2)',
+                    'rgba(255, 205, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(201, 203, 207, 0.2)'
+                  ],
+                  borderColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(255, 159, 64)',
+                    'rgb(255, 205, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(54, 162, 235)',
+                    'rgb(153, 102, 255)',
+                    'rgb(201, 203, 207)'
+                  ],
+                  order: 1
+              },
+              {
+                  type: 'line',
+                  label: 'Closing Index Value',
+                  data: sortedData.map(d=>{
+                    const v = parseFloat(d.closing_index_value.replace(/"/g,''));
+                    return isNaN(v)? null : v;
+                  }),
+                  borderColor: 'rgb(54, 162, 235)',
+                  borderWidth: 2,
+                  fill: false,
+                  tension: 0.1,
+                  yAxisID: 'y1',
+                  order: 0
+              }
+          ]
+      },
+      options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+              y: {
+                  beginAtZero: true,
+                  position: 'left',
+                  title: {
+                      display: true,
+                      text: 'Volume'
+                  }
+              },
+              y1: {
+                  position: 'right',
+                  title: {
+                      display: true,
+                      text: 'Closing Index Value'
+                  },
+                  grid: {
+                      drawOnChartArea: false
+                  }
+              }
+          },
+          plugins: {
+            zoom: {
+              pan: {
+                enabled: true,
+                mode: 'xy', 
+
+              },
+              zoom: {
+                wheel: {
+                  enabled: true, 
+                },
+              
+                pinch: {
+                  enabled: true 
+                },
+                mode: 'xy', 
+              }
+
+            }
+          }
+        }
+  });
+  pointInstance = new Chart(ptx, {
+    type: 'line',
+    data: {
+        labels: sortedData.map(d => d.index_date),
+        datasets: [{
+            label: 'Points',
+            data: sortedData.map(d=>{
+              const v = parseFloat(d.volume.replace(/"/g,''));
+              return isNaN(v)? null : v;
+            }),
+            borderWidth: 1,
+            tension: 0.10
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          
+            y: {
+                beginAtZero: false
+            }
+        },
+        plugins: {
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'xy', 
+
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+            
+              pinch: {
+                enabled: true 
+              },
+              mode: 'xy', 
+            }
+
+          }
+        }
+
+        
+    },
+    
+});
+
+chartC = new Chart(highLowValue, {
+  type: 'bar',
+  data: {
+      labels: sortedData.map(d => d.index_date),
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Points Change',
+          data: sortedData.map(d=>{
+            const v = parseFloat(d.points_change.replace(/"/g,''));
+            return isNaN(v)? null : v;
+          }),
+          backgroundColor: sortedData.map(d => {
+            const value = parseFloat(d.points_change.replace(/"/g,''));
+            return value >= 0 ? 'rgba(75, 192, 75, 0.5)' : 'rgba(255, 99, 132, 0.5)';
+          }),
+          borderColor: sortedData.map(d => {
+            const value = parseFloat(d.points_change.replace(/"/g,''));
+            return value >= 0 ? 'rgb(75, 192, 75)' : 'rgb(255, 99, 132)';
+          }),
+          borderWidth: 1
+        },
+        {
+          type: 'line',
+          label: 'Turnover (Rs Cr)',
+          data: sortedData.map(d=>{
+            const v = parseFloat(d.turnover_rs_cr.replace(/"/g,''));
+            return isNaN(v)? null : v;
+          }),
+          borderColor: 'rgb(54, 162, 235)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.1,
+          yAxisID: 'y1'
+        }
+      ]
+  },
+  options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+          y: {
+              beginAtZero: true,
+              position: 'left',
+              title: {
+                  display: true,
+                  text: 'Points Change'
+              }
+          },
+          y1: {
+              position: 'right',
+              title: {
+                  display: true,
+                  text: 'Turnover (Rs Cr)'
+              },
+              grid: {
+                  drawOnChartArea: false
+              }
+          }
+      },
+      plugins: {
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'xy', 
+
+          },
+          zoom: {
+            wheel: {
+              enabled: true, 
+            },
+          
+            pinch: {
+              enabled: true 
+            },
+            mode: 'xy', 
+          }
+
+        }
+      }
+
+      
+  },
+  
+});
+
+// Create Bubble Chart
+const bubbleData = sortedData.map(d => {
+  const closing = parseFloat(d.closing_index_value.replace(/"/g,''));
+  const volume = parseFloat(d.volume.replace(/"/g,''));
+  const changePercent = parseFloat(d.change_percent.replace(/"/g,''));
+  
+  const maxVolume = Math.max(...sortedData.map(d => parseFloat(d.volume.replace(/"/g,''))));
+  const minVolume = Math.min(...sortedData.map(d => parseFloat(d.volume.replace(/"/g,''))));
+  const range = maxVolume - minVolume;
+  const normalizedVolume = (volume - minVolume) / range;
+  
+  return {
+    x: d.index_date,
+    y: isNaN(closing) ? null : closing,
+    r: isNaN(volume) ? 0 : normalizedVolume*20 , 
+    volume: volume, 
+    changePercent: isNaN(changePercent) ? 0 : changePercent
+  };
+}).filter(d => d.y !== null && d.r > 0);
+
+
+const formattedBubbleData = bubbleData.map((d, index) => ({
+  x: index, 
+  y: d.y,
+  r: d.r,
+  volume: d.volume,
+  changePercent: d.changePercent,
+  originalDate: d.x 
+}));
+
+bubbleChartInstance = new Chart(bubbleCtx, {
+  type: 'bubble',
+  data: {
+    labels: bubbleData.map(d => d.x), // Original dates as labels
+    datasets: [{
+      label: 'Stock Performance',
+      data: formattedBubbleData,
+      backgroundColor: formattedBubbleData.map(d => 
+        d.changePercent >= 0 ? 'rgba(75, 192, 75, 0.7)' : 'rgba(255, 99, 132, 0.7)'
+      ),
+      borderColor: formattedBubbleData.map(d => 
+        d.changePercent >= 0 ? 'rgb(75, 192, 75)' : 'rgb(255, 99, 132)'
+      ),
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        type: 'linear', 
+        position: 'bottom',
+        title: {
+          display: true,
+          text: 'Date'
+        },
+        ticks: {
+          callback: function(value) {
+            const index = Math.round(value);
+            if (index >= 0 && index < bubbleData.length) {
+              return bubbleData[index].x;
+            }
+            return '';
+          },
+          maxRotation: 45,
+          autoSkip: true,
+          maxTicksLimit: 15
+        }
+      },
+      y: {
+        title: {
+          display: true,
+          text: 'Closing Index Value'
+        }
+      }
+    },
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const d = context.raw;
+            const originalDate = bubbleData[d.x].x;
+            return [
+              `Date: ${originalDate}`,
+              `Closing Value: ${d.y.toFixed(2)}`,
+              `Volume: ${d.volume.toFixed(0)}`,
+              `Change %: ${d.changePercent.toFixed(2)}%`
+            ];
+          }
+        }
+      },
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'xy',
+          threshold: 10 // Make panning more responsive
+        },
+        zoom: {
+          wheel: {
+            enabled: true
+          },
+          pinch: {
+            enabled: true
+          },
+          mode: 'xy'
+        },
+        limits: {
+          x: {
+            min: -1,
+            max: bubbleData.length
+          }
+        }
+      }
+    }
+  }
+});
+
+function fixDateString(dateString) {
+  return dateString.replace(/"/g, '');  
+}
+
+
+function convertDateFormat(dateString) {
+  const cleanDate = fixDateString(dateString);
+  const [day, month, year] = cleanDate.split('-'); 
+  return `${year}-${month}-${day}`;
+}
+
+
+
+
+
+ candlestickData = sortedData.map(d => ({
+  x: luxon.DateTime.fromISO(convertDateFormat(d.index_date)).toJSDate(),
+  o: parseFloat(d.open_index_value.replace(/"/g, '')),
+  h: parseFloat(d.high_index_value.replace(/"/g, '')),
+  l: parseFloat(d.low_index_value.replace(/"/g, '')),
+  c: parseFloat(d.closing_index_value.replace(/"/g, ''))
+})).filter(d => !isNaN(d.o) && !isNaN(d.h) && !isNaN(d.l) && !isNaN(d.c)); 
+
+const yValues = candlestickData.flatMap(d => [d.o, d.h, d.l, d.c]);
+const minY = Math.floor(Math.min(...yValues) * 0.995); // 0.5% buffer below
+const maxY = Math.ceil(Math.max(...yValues) * 1.005); // 0.5% buffer above
+
+const xDates = candlestickData.map(d => d.x);
+const minDate = new Date(Math.min(...xDates.map(d => d.getTime())));
+const maxDate = new Date(Math.max(...xDates.map(d => d.getTime())));
+
+const daysToShow = 7;
+const lastWeekData = candlestickData.slice(-Math.min(daysToShow, candlestickData.length));
+const initialMinDate = lastWeekData[0].x;
+const initialMaxDate = lastWeekData[lastWeekData.length - 1].x;
+
+console.log("Showing data from", initialMinDate, "to", initialMaxDate);
+
+ candlestickInstance = new Chart(candlestickChart, {
+  type: 'candlestick',
+  data: {
+    datasets: [{
+      label: 'Stock Prices',
+      data: candlestickData,
+      color: {
+        up: '#00ff00',     // Green for bullish candle
+        down: '#ff0000',   // Red for bearish candle
+      }
+    }]
+  },
+   options: {
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
+    tooltip: {
+      enabled: true,
+      position: 'nearest',
+      callbacks: {
+        label: function(context) {
+          const o = context.raw.o.toFixed(2);
+          const h = context.raw.h.toFixed(2);
+          const l = context.raw.l.toFixed(2);
+          const c = context.raw.c.toFixed(2);
+          return [
+            `Open: ${o}`,
+            `High: ${h}`,
+            `Low: ${l}`,
+            `Close: ${c}`
+          ];
+        },
+        title: function(context) {
+          const date = luxon.DateTime.fromJSDate(context[0].parsed.x).toFormat('MMM dd, yyyy');
+          return `Date: ${date}`;
+        }
+      }
+    },
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        type: 'time',
+        min: initialMinDate,
+        max: initialMaxDate,
+        time: {
+          unit: 'day',
+          tooltipFormat: 'MMM dd, yyyy'
+        },
+        ticks: {
+          source: 'auto',
+          maxTicksLimit: 7, 
+          maxRotation: 90, 
+          minRotation: 45
+        },
+        bounds: 'data'
+      },
+      y: {
+        beginAtZero: false,
+        min: Math.floor(Math.min(...lastWeekData.flatMap(d => [d.o, d.h, d.l, d.c])) * 0.995),
+        max: Math.ceil(Math.max(...lastWeekData.flatMap(d => [d.o, d.h, d.l, d.c])) * 1.005),
+        bounds: 'data'
+      }
+    },
+    plugins: {
+      tooltip: {
+        mode: 'index',
+        intersect: false
+      },
+      zoom: {
+        limits: {
+          x: {
+            min: minDate,
+            max: maxDate
+          },
+          y: {
+            min: minY,
+            max: maxY
+          }
+        },
+        pan: { 
+          enabled: true, 
+          mode: 'xy',
+          onPanComplete: function({chart}) {
+            const xAxis = chart.scales.x;
+            const yAxis = chart.scales.y;
+            
+            const visibleData = candlestickData.filter(d => {
+              const time = d.x.getTime();
+              return time >= xAxis.min && time <= xAxis.max;
+            });
+            
+            if (visibleData.length > 0) {
+              const visibleYValues = visibleData.flatMap(d => [d.o, d.h, d.l, d.c]);
+              yAxis.min = Math.floor(Math.min(...visibleYValues) * 0.995);
+              yAxis.max = Math.ceil(Math.max(...visibleYValues) * 1.005);
+              chart.update();
+            }
+          }
+        },
+        zoom: { 
+          mode: 'xy', 
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          onZoomComplete: function({chart}) {
+            const xAxis = chart.scales.x;
+            const yAxis = chart.scales.y;
+            
+            const visibleData = candlestickData.filter(d => {
+              const time = d.x.getTime();
+              return time >= xAxis.min && time <= xAxis.max;
+            });
+            
+            if (visibleData.length > 0) {
+              const visibleYValues = visibleData.flatMap(d => [d.o, d.h, d.l, d.c]);
+              yAxis.min = Math.floor(Math.min(...visibleYValues) * 0.995);
+              yAxis.max = Math.ceil(Math.max(...visibleYValues) * 1.005);
+              chart.update();
+            }
+          }
+        }
+      }
+    }
+  }
+});
+console.log(candlestickData);
+}
+window.addEventListener('load', async () => {
+    const data = await loadData();
+    //const x = (data[10].volume.slice(1,-1))
+    //console.log(parseFloat(x))
+    const companies = [...new Set(data.map(item => item.index_name))];
+    
+    const companyList = document.getElementById('companyList');
+    companies.forEach(company => {
+        const div = document.createElement('div');
+        div.className = 'company-item';
+        div.textContent = company.replace(/"/g, '');
+        div.addEventListener('click', () => {
+            document.querySelectorAll('.company-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            div.classList.add('selected');
+            createChart(data.filter(d => d.index_name === company));
+        });
+        companyList.appendChild(div);
+    });
+    
+    if (companies.length > 0) {
+        const firstCompanyItem = document.querySelector('.company-item');
+        if (firstCompanyItem) {
+            firstCompanyItem.classList.add('selected');
+        }
+        createChart(data.filter(d => d.index_name === companies[0]));
+    }
+});
+
+window.addEventListener('resize', () => {
+  if (chartInstance) chartInstance.resize();
+  if (pointChartInstance) pointChartInstance.resize();
+  if (highLowChartInstance) highLowChartInstance.resize();
+  if (bubbleChartInstance) bubbleChartInstance.resize();
+  if (candlestickInstance) candlestickInstance.resize();
+});
+
+function updateDateTime() {
+  const now = new Date();
+  const options = {
+    weekday: 'short', year: 'numeric', month: 'short',
+    day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+  };
+  const formattedDate = now.toLocaleDateString('en-US', options);
+  document.getElementById('datetime').textContent = formattedDate;
+}
+
+// Update immediately
+updateDateTime();
+
+// Then update every second
+setInterval(updateDateTime, 1000);
+
+
+
+const typed = new Typed('#type', {
+      strings: ["Scroll On Graph  To Zoom In", "Drag To Move"],
+      typeSpeed: 50,
+      backSpeed: 30,
+      loop: true,
+      showCursor: true,
+      cursorChar: '|',
+    });
+
+
+loadData()
+</script>
+</body>
+</html>
