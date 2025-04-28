@@ -68,7 +68,7 @@
         }
 
         .app-title {
-            font-size: 3.5vh;
+            font-size: clamp(0.5vh, 2.5vh, 3.5vh);
             font-weight: 700;
             letter-spacing: 0.5vh;
             margin: 0;
@@ -133,6 +133,7 @@
             padding: 1.5vh;
             margin-left: 28vh;
             transition: margin-left 0.3s ease;
+            margin-top: 10%;
         }
 
         #chartContainer.expanded {
@@ -197,10 +198,26 @@
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-sm);
             border: 0.1vh solid var(--border-color);
+            width: 18%;
+
+
         }
 
+        .nav-right.collapsed {
+         transform: translateY(-100%);
+         transition: transform 0.5s ease;
+        }
+
+        .app-header.expanded {
+          width: 100%;
+        }
+
+        #chartContainer.expanded {
+          width: 100%;
+        }
+        
         #type {
-                font-size: 2vh;
+                font-size: 1.7vh;
                 font-family: 'Inter', sans-serif;
                 color: var(--primary-color);
                 font-weight: 500;
@@ -217,13 +234,24 @@
             .fa-bars.rotate {
               transform: rotate(90deg);
               color: black;
-              transition: transform 0.6s ease;
+              transition: transform 1s ease;
 
             }
+
+        .fa-bars{
+          transition: transform 1s ease;
+          
+        }
+
+        .fa{
+          background-color: black;
+        }
 
         @media (max-width: 768px) {
             .app-header {
                 padding: 1vh;
+                width: 150% !important;
+                position: absolute !important;
             }
             
             #companyList {
@@ -241,6 +269,10 @@
             
             .chart-body {
                 height: 30vh;
+                width: 100%;
+            }
+            .nav-right{
+              display: none;
             }
         }
         
@@ -249,8 +281,12 @@
 <body>
     <header class="app-header">
         <h1 class="app-title">Stock Market Analytics Dashboard</h1>
-        <button class="toggle-sidebar" @click="toggleSidebar">
+        
+        
+
+        <button class="toggle-sidebar" onclick="toggleSidebar()">
             <i class="fas fa-bars"></i>
+
         </button>
     </header>
     
@@ -895,13 +931,13 @@ window.addEventListener('load', async () => {
     }
 });
 
-window.addEventListener('resize', () => {
-  if (chartInstance) chartInstance.resize();
-  if (pointChartInstance) pointChartInstance.resize();
-  if (highLowChartInstance) highLowChartInstance.resize();
-  if (bubbleChartInstance) bubbleChartInstance.resize();
-  if (candlestickInstance) candlestickInstance.resize();
-});
+// window.addEventListener('resize', () => {
+//   if (chartInstance) chartInstance.resize();
+//   if (pointChartInstance) pointChartInstance.resize();
+//   if (highLowChartInstance) highLowChartInstance.resize();
+//   if (bubbleChartInstance) bubbleChartInstance.resize();
+//   if (candlestickInstance) candlestickInstance.resize();
+// });
 
 function updateDateTime() {
   const now = new Date();
@@ -922,7 +958,7 @@ setInterval(updateDateTime, 1000);
 
 
 const typed = new Typed('#type', {
-      strings: ["Scroll On Graph  To Zoom In", "Drag To Move"],
+      strings: ["Double Click To Expand","Scroll On Graph  To Zoom In","Tap Nav Button To Expand", "Drag To Move"],
       typeSpeed: 50,
       backSpeed: 30,
       loop: true,
@@ -930,7 +966,7 @@ const typed = new Typed('#type', {
       cursorChar: '|',
     });
 
-window.addEventListener('click', ()=>{
+window.addEventListener('dblclick', () => {
   const sidebar = document.getElementById('companyList');
   sidebar.classList.toggle('collapsed');
   
@@ -938,10 +974,57 @@ window.addEventListener('click', ()=>{
   const navIcon = document.querySelector('.fa-bars');
   if (navIcon) {
     navIcon.classList.toggle('rotate');
+
+  const navRight = document.querySelector('.nav-right');
+  navRight.classList.toggle('collapsed');
+
+  const chartContainer = document.getElementById('chartContainer');
+  chartContainer.classList.toggle('expanded');
+
+  const appHeader = document.querySelector('.app-header');
+  appHeader.classList.toggle('expanded');
   }
 })
 
+function toggleSidebar() {
+  const sidebar      = document.getElementById('companyList');
+  const navIcon      = document.querySelector('.fa-bars');
+  const navRight     = document.querySelector('.nav-right');
+  const chartContainer = document.getElementById('chartContainer');
+  const appHeader    = document.querySelector('.app-header');
+
+  // toggle sidebar
+  sidebar.classList.toggle('collapsed');
+
+  // toggle the hamburger icon rotation (if it exists)
+  if (navIcon) {
+    navIcon.classList.toggle('rotate');
+  }
+
+  // toggle the right-hand nav
+  if (navRight) {
+    navRight.classList.toggle('collapsed');
+  }
+
+  // expand/shrink chart area
+  if (chartContainer) {
+    chartContainer.classList.toggle('expanded');
+  }
+
+  // adjust header padding/width
+  if (appHeader) {
+    appHeader.classList.toggle('expanded');
+  }
+}
 loadData()
+
+// window.onload = () => {
+//   const sidebar = document.getElementById('companyList');
+//   sidebar.classList.toggle('collapsed');
+  
+//   const navRight = document.querySelector('.nav-right');
+//   navRight.classList.toggle('collapsed');
+// }
 </script>
 </body>
 </html>
